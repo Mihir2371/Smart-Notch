@@ -1,0 +1,6 @@
+{
+  "name": "Aura Island",
+  "description": "True-Black OLED Dynamic Island with all iOS Live Activities, fluid spring animations, Hotspot & Download/Upload trackers, and OriginOS-style Drag & Go.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

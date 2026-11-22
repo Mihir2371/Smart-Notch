@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Aura Island</string>
+    <string name="notification_listener_label">Aura Island Live Sync</string>
+    <string name="overlay_channel_name">Aura Island Overlay</string>
+    <string name="overlay_channel_description">Keeps the lightweight Dynamic Island and Drag and Go receiver active</string>
+    <string name="nav_hub">Island Hub</string>
+    <string name="nav_live_lab">Live Lab</string>
+    <string name="nav_drag_go">Drag &amp; Go</string>
+    <string name="nav_settings">Settings</string>
+</resources>
