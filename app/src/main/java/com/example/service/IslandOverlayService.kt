@@ -42,6 +42,7 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.example.AuraIslandApplication
 import com.example.MainActivity
 import com.example.R
+import com.example.model.CapsuleStyle
 import com.example.model.DragPayload
 import com.example.model.EdgeScrollDirection
 import com.example.ui.island.CoordinatorIslandCallbacks
@@ -157,7 +158,12 @@ class IslandOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
             PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            y = (coordinator.settings.value.offsetYdp * resources.displayMetrics.density).toInt()
+            val initialCfg = coordinator.settings.value
+            y = if (initialCfg.capsuleStyle == CapsuleStyle.IPHONE_13_NOTCH) {
+                0
+            } else {
+                (initialCfg.offsetYdp * resources.displayMetrics.density).toInt()
+            }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
             }
@@ -232,8 +238,14 @@ class IslandOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
                 AuraIslandTheme {
                     val snapshot by coordinator.snapshot.collectAsState()
                     val settings by coordinator.settings.collectAsState()
+                    val isNotch = settings.capsuleStyle == CapsuleStyle.IPHONE_13_NOTCH
                     Box(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        modifier = Modifier.padding(
+                            start = 8.dp,
+                            end = 8.dp,
+                            top = if (isNotch) 0.dp else 2.dp,
+                            bottom = 2.dp,
+                        ),
                         contentAlignment = Alignment.TopCenter,
                     ) {
                         DynamicIslandCapsule(
@@ -265,7 +277,11 @@ class IslandOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
                 val c = rootContainer ?: return@collectLatest
                 val density = resources.displayMetrics.density
                 p.x = (cfg.offsetXdp * density).toInt()
-                p.y = (cfg.offsetYdp * density).toInt()
+                p.y = if (cfg.capsuleStyle == CapsuleStyle.IPHONE_13_NOTCH) {
+                    0
+                } else {
+                    (cfg.offsetYdp * density).toInt()
+                }
                 runCatching { windowManager?.updateViewLayout(c, p) }
             }
         }

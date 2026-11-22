@@ -7,7 +7,9 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.example.model.CapsuleStyle
 import com.example.model.IslandSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -17,6 +19,7 @@ private val Context.islandDataStore: DataStore<Preferences> by preferencesDataSt
 class SettingsRepository(private val context: Context) {
 
     private object Keys {
+        val CAPSULE_STYLE = stringPreferencesKey("capsule_style")
         val OVERLAY_ENABLED = booleanPreferencesKey("overlay_enabled")
         val DRAG_AND_GO_ENABLED = booleanPreferencesKey("drag_and_go_enabled")
         val SHOW_IDLE_PILL = booleanPreferencesKey("show_idle_pill")
@@ -36,7 +39,14 @@ class SettingsRepository(private val context: Context) {
     }
 
     val settingsFlow: Flow<IslandSettings> = context.islandDataStore.data.map { prefs ->
-        IslandSettings(
+        readSettings(prefs)
+    }
+
+    private fun readSettings(prefs: Preferences): IslandSettings {
+        val styleName = prefs[Keys.CAPSULE_STYLE]
+        val style = CapsuleStyle.entries.firstOrNull { it.name == styleName } ?: CapsuleStyle.DYNAMIC_ISLAND
+        return IslandSettings(
+            capsuleStyle = style,
             overlayEnabled = prefs[Keys.OVERLAY_ENABLED] ?: false,
             dragAndGoEnabled = prefs[Keys.DRAG_AND_GO_ENABLED] ?: true,
             showIdlePill = prefs[Keys.SHOW_IDLE_PILL] ?: true,
@@ -58,25 +68,9 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun update(transform: (IslandSettings) -> IslandSettings) {
         context.islandDataStore.edit { prefs ->
-            val current = IslandSettings(
-                overlayEnabled = prefs[Keys.OVERLAY_ENABLED] ?: false,
-                dragAndGoEnabled = prefs[Keys.DRAG_AND_GO_ENABLED] ?: true,
-                showIdlePill = prefs[Keys.SHOW_IDLE_PILL] ?: true,
-                offsetXdp = prefs[Keys.OFFSET_X_DP] ?: 0,
-                offsetYdp = prefs[Keys.OFFSET_Y_DP] ?: 8,
-                baseWidthDp = prefs[Keys.BASE_WIDTH_DP] ?: 122,
-                baseHeightDp = prefs[Keys.BASE_HEIGHT_DP] ?: 34,
-                cornerRadiusDp = prefs[Keys.CORNER_RADIUS_DP] ?: 24,
-                springSpeedFactor = prefs[Keys.SPRING_SPEED] ?: 1.0f,
-                batterySaverMode = prefs[Keys.BATTERY_SAVER] ?: false,
-                edgeScrollSpeed = prefs[Keys.EDGE_SCROLL_SPEED] ?: 1.0f,
-                autoCollapseSeconds = prefs[Keys.AUTO_COLLAPSE_SEC] ?: 8,
-                privacyDotsEnabled = prefs[Keys.PRIVACY_DOTS] ?: true,
-                hotspotAutoTrack = prefs[Keys.HOTSPOT_AUTO_TRACK] ?: true,
-                downloadAutoTrack = prefs[Keys.DOWNLOAD_AUTO_TRACK] ?: true,
-                hapticFeedbackEnabled = prefs[Keys.HAPTICS_ENABLED] ?: true,
-            )
+            val current = readSettings(prefs)
             val next = transform(current)
+            prefs[Keys.CAPSULE_STYLE] = next.capsuleStyle.name
             prefs[Keys.OVERLAY_ENABLED] = next.overlayEnabled
             prefs[Keys.DRAG_AND_GO_ENABLED] = next.dragAndGoEnabled
             prefs[Keys.SHOW_IDLE_PILL] = next.showIdlePill

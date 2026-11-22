@@ -32,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.model.CapsuleStyle
 import com.example.model.IslandSettings
 import com.example.ui.theme.AccentCoral
 import com.example.ui.theme.AccentCyan
@@ -65,6 +66,19 @@ fun SettingsScreen(
                 SectionHeader("Behavior & System Sync")
                 Spacer(modifier = Modifier.height(8.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SettingsToggleRow(
+                        title = "iPhone 13 Notch Mode",
+                        subtitle = "Top-edge flat-top notch for devices without a punch-hole camera",
+                        checked = settings.capsuleStyle == CapsuleStyle.IPHONE_13_NOTCH,
+                        tag = "setting_notch_mode",
+                        onCheckedChange = { enabled ->
+                            onUpdateSettings {
+                                it.copy(
+                                    capsuleStyle = if (enabled) CapsuleStyle.IPHONE_13_NOTCH else CapsuleStyle.DYNAMIC_ISLAND,
+                                )
+                            }
+                        },
+                    )
                     SettingsToggleRow(
                         title = "OriginOS Drag & Go Dock",
                         subtitle = "Expand pill to matching apps when dragging items",

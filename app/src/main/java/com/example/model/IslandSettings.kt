@@ -2,8 +2,14 @@ package com.example.model
 
 import androidx.compose.runtime.Immutable
 
+enum class CapsuleStyle(val label: String, val description: String) {
+    DYNAMIC_ISLAND("Dynamic Island", "Floating OLED pill for punch-hole displays"),
+    IPHONE_13_NOTCH("iPhone 13 Notch", "Top-edge docked notch for non-punch-hole screens"),
+}
+
 @Immutable
 data class IslandSettings(
+    val capsuleStyle: CapsuleStyle = CapsuleStyle.DYNAMIC_ISLAND,
     val overlayEnabled: Boolean = false,
     val dragAndGoEnabled: Boolean = true,
     val showIdlePill: Boolean = true,

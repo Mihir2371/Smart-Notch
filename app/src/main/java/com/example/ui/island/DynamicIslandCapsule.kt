@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -55,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -68,6 +70,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.core.IslandSnapshot
+import com.example.model.CapsuleStyle
 import com.example.model.HardwareAlert
 import com.example.model.IslandDisplayMode
 import com.example.model.IslandSettings
@@ -106,15 +109,25 @@ fun DynamicIslandCapsule(
         0.68f
     }
 
+    val isNotchMode = settings.capsuleStyle == CapsuleStyle.IPHONE_13_NOTCH
+
     val targetWidth: Dp
     val targetHeight: Dp
     val targetCorner: Dp
 
     when (snapshot.displayMode) {
         IslandDisplayMode.HIDDEN, IslandDisplayMode.IDLE_PILL -> {
-            targetWidth = if (snapshot.dragState.isDragActive) 156.dp else settings.baseWidthDp.dp
-            targetHeight = if (snapshot.dragState.isDragActive) 40.dp else settings.baseHeightDp.dp
-            targetCorner = settings.cornerRadiusDp.dp
+            targetWidth = when {
+                snapshot.dragState.isDragActive -> 164.dp
+                isNotchMode -> (settings.baseWidthDp + 24).coerceAtLeast(146).dp
+                else -> settings.baseWidthDp.dp
+            }
+            targetHeight = when {
+                snapshot.dragState.isDragActive -> 40.dp
+                isNotchMode -> settings.baseHeightDp.coerceAtMost(32).dp
+                else -> settings.baseHeightDp.dp
+            }
+            targetCorner = if (isNotchMode) 18.dp else settings.cornerRadiusDp.dp
         }
         IslandDisplayMode.COMPACT_SINGLE -> {
             targetWidth = 224.dp
@@ -163,27 +176,50 @@ fun DynamicIslandCapsule(
         animationSpec = spring(dampingRatio = damping, stiffness = stiffness),
         label = "island_corner",
     )
+    val animTopCorner by animateDpAsState(
+        targetValue = if (isNotchMode) 0.dp else animCorner,
+        animationSpec = spring(dampingRatio = damping, stiffness = stiffness),
+        label = "island_top_corner",
+    )
+
+    val capsuleShape = RoundedCornerShape(
+        topStart = animTopCorner,
+        topEnd = animTopCorner,
+        bottomStart = animCorner,
+        bottomEnd = animCorner,
+    )
 
     val borderColor = when {
         snapshot.displayMode == IslandDisplayMode.DRAG_AND_GO_DOCK -> AccentCyan.copy(alpha = 0.75f)
         snapshot.dragState.isDragActive -> AccentCyan.copy(alpha = 0.65f)
         snapshot.displayMode == IslandDisplayMode.EXPANDED_CARD -> BorderHairline
+        isNotchMode -> Color.Transparent
         else -> Color.White.copy(alpha = 0.08f)
     }
 
     Row(
         modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = if (isNotchMode) Alignment.Top else Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {
-        // Main OLED True-Black Capsule
+        if (isNotchMode) {
+            NotchShoulderFillet(isLeft = true)
+        }
+
+        // Main OLED True-Black Capsule / iPhone 13 Notch
         Box(
             modifier = Modifier
                 .width(animWidth)
                 .height(animHeight)
-                .clip(RoundedCornerShape(animCorner))
+                .clip(capsuleShape)
                 .background(IslandBlack)
-                .border(1.dp, borderColor, RoundedCornerShape(animCorner))
+                .then(
+                    if (borderColor != Color.Transparent) {
+                        Modifier.border(1.dp, borderColor, capsuleShape)
+                    } else {
+                        Modifier
+                    },
+                )
                 .pointerInput(snapshot.displayMode) {
                     if (snapshot.displayMode == IslandDisplayMode.EXPANDED_CARD) {
                         detectVerticalDragGestures { _, dragAmount ->
@@ -217,6 +253,7 @@ fun DynamicIslandCapsule(
                 when (mode) {
                     IslandDisplayMode.HIDDEN, IslandDisplayMode.IDLE_PILL -> {
                         IdleCapsuleContent(
+                            isNotchMode = isNotchMode,
                             isDragActive = snapshot.dragState.isDragActive,
                             micActive = snapshot.privacyMicActive,
                             cameraActive = snapshot.privacyCameraActive,
@@ -250,6 +287,10 @@ fun DynamicIslandCapsule(
             }
         }
 
+        if (isNotchMode) {
+            NotchShoulderFillet(isLeft = false)
+        }
+
         // Detached Split-Bubble for Dual Simultaneous Live Activities (iOS signature animation)
         AnimatedVisibility(
             visible = snapshot.displayMode == IslandDisplayMode.COMPACT_SPLIT && snapshot.secondaryActivity != null,
@@ -259,14 +300,19 @@ fun DynamicIslandCapsule(
             ),
             exit = fadeOut() + scaleOut(targetScale = 0.4f),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Spacer(modifier = Modifier.width(8.dp))
+            val splitShape = if (isNotchMode) {
+                RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 18.dp, bottomEnd = 18.dp)
+            } else {
+                CircleShape
+            }
+            Row(verticalAlignment = if (isNotchMode) Alignment.Top else Alignment.CenterVertically) {
+                Spacer(modifier = Modifier.width(if (isNotchMode) 4.dp else 8.dp))
                 Box(
                     modifier = Modifier
                         .size(38.dp)
-                        .clip(CircleShape)
+                        .clip(splitShape)
                         .background(IslandBlack)
-                        .border(1.dp, Color.White.copy(alpha = 0.1f), CircleShape)
+                        .border(1.dp, Color.White.copy(alpha = 0.1f), splitShape)
                         .clickable { onSwapSplit() }
                         .testTag("dynamic_island_split_bubble"),
                     contentAlignment = Alignment.Center,
@@ -281,7 +327,30 @@ fun DynamicIslandCapsule(
 }
 
 @Composable
+private fun NotchShoulderFillet(isLeft: Boolean) {
+    Canvas(modifier = Modifier.size(10.dp)) {
+        val w = size.width
+        val h = size.height
+        val path = Path().apply {
+            if (isLeft) {
+                moveTo(w, 0f)
+                lineTo(0f, 0f)
+                quadraticTo(w, 0f, w, h)
+                close()
+            } else {
+                moveTo(0f, 0f)
+                lineTo(w, 0f)
+                quadraticTo(0f, 0f, 0f, h)
+                close()
+            }
+        }
+        drawPath(path = path, color = IslandBlack)
+    }
+}
+
+@Composable
 private fun IdleCapsuleContent(
+    isNotchMode: Boolean,
     isDragActive: Boolean,
     micActive: Boolean,
     cameraActive: Boolean,
@@ -305,6 +374,33 @@ private fun IdleCapsuleContent(
                 tint = AccentCyan,
                 modifier = Modifier.size(14.dp),
             )
+        } else if (isNotchMode) {
+            Spacer(modifier = Modifier.width(10.dp))
+            Box(
+                modifier = Modifier
+                    .width(34.dp)
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(Color.White.copy(alpha = 0.14f)),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (micActive) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(AccentAmber),
+                    )
+                }
+                if (cameraActive) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(AccentEmerald),
+                    )
+                }
+            }
         } else {
             Spacer(modifier = Modifier.width(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {

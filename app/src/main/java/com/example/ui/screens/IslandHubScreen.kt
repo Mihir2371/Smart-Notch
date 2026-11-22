@@ -60,6 +60,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.model.CapsuleStyle
 import com.example.model.IslandSettings
 import com.example.model.TelemetryStats
 import com.example.ui.theme.AccentAmber
@@ -440,7 +441,42 @@ private fun CutoutCalibrationCard(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Filled.Tune, contentDescription = "Calibration", tint = AccentCyan)
-                Text("Cutout Alignment & Size", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
+                Text("Display Style & Cutout Alignment", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                CapsuleStyle.entries.forEach { style ->
+                    val selected = settings.capsuleStyle == style
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(if (selected) AccentCyan.copy(alpha = 0.16f) else SurfaceElevated)
+                            .border(
+                                width = 1.dp,
+                                color = if (selected) AccentCyan else BorderHairline,
+                                shape = RoundedCornerShape(14.dp),
+                            )
+                            .clickable { onUpdateSettings { it.copy(capsuleStyle = style) } }
+                            .padding(horizontal = 12.dp, vertical = 10.dp)
+                            .testTag("style_option_${style.name.lowercase()}"),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(
+                            text = style.label,
+                            style = MaterialTheme.typography.titleSmall,
+                            color = if (selected) AccentCyan else TextPrimary,
+                        )
+                        Text(
+                            text = style.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextSecondary,
+                        )
+                    }
+                }
             }
 
             CalibrationStepperRow(
@@ -449,20 +485,22 @@ private fun CutoutCalibrationCard(
                 onMinus = { onUpdateSettings { it.copy(offsetXdp = (it.offsetXdp - 2).coerceIn(-80, 80)) } },
                 onPlus = { onUpdateSettings { it.copy(offsetXdp = (it.offsetXdp + 2).coerceIn(-80, 80)) } },
             )
+            if (settings.capsuleStyle == CapsuleStyle.DYNAMIC_ISLAND) {
+                CalibrationStepperRow(
+                    label = "Top Margin (Y)",
+                    valueText = "${settings.offsetYdp} dp",
+                    onMinus = { onUpdateSettings { it.copy(offsetYdp = (it.offsetYdp - 2).coerceIn(0, 64)) } },
+                    onPlus = { onUpdateSettings { it.copy(offsetYdp = (it.offsetYdp + 2).coerceIn(0, 64)) } },
+                )
+            }
             CalibrationStepperRow(
-                label = "Top Margin (Y)",
-                valueText = "${settings.offsetYdp} dp",
-                onMinus = { onUpdateSettings { it.copy(offsetYdp = (it.offsetYdp - 2).coerceIn(0, 64)) } },
-                onPlus = { onUpdateSettings { it.copy(offsetYdp = (it.offsetYdp + 2).coerceIn(0, 64)) } },
-            )
-            CalibrationStepperRow(
-                label = "Idle Pill Width",
+                label = if (settings.capsuleStyle == CapsuleStyle.IPHONE_13_NOTCH) "Notch Width" else "Idle Pill Width",
                 valueText = "${settings.baseWidthDp} dp",
                 onMinus = { onUpdateSettings { it.copy(baseWidthDp = (it.baseWidthDp - 4).coerceIn(96, 180)) } },
                 onPlus = { onUpdateSettings { it.copy(baseWidthDp = (it.baseWidthDp + 4).coerceIn(96, 180)) } },
             )
             CalibrationStepperRow(
-                label = "Idle Pill Height",
+                label = if (settings.capsuleStyle == CapsuleStyle.IPHONE_13_NOTCH) "Notch Height" else "Idle Pill Height",
                 valueText = "${settings.baseHeightDp} dp",
                 onMinus = { onUpdateSettings { it.copy(baseHeightDp = (it.baseHeightDp - 2).coerceIn(28, 44)) } },
                 onPlus = { onUpdateSettings { it.copy(baseHeightDp = (it.baseHeightDp + 2).coerceIn(28, 44)) } },

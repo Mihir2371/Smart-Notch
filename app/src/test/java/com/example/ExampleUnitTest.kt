@@ -1,5 +1,6 @@
 package com.example
 
+import com.example.model.CapsuleStyle
 import com.example.model.IslandSettings
 import com.example.ui.island.formatMillisStopwatch
 import com.example.ui.island.formatSecondsMmSs
@@ -18,6 +19,7 @@ class ExampleUnitTest {
     @Test
     fun defaultSettings_stayLightweight() {
         val defaults = IslandSettings()
+        assertEquals(CapsuleStyle.DYNAMIC_ISLAND, defaults.capsuleStyle)
         assertTrue(defaults.dragAndGoEnabled)
         assertTrue(defaults.hotspotAutoTrack)
         assertTrue(defaults.downloadAutoTrack)

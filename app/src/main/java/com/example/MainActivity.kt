@@ -59,6 +59,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.example.model.CapsuleStyle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -319,16 +320,17 @@ private fun AuraIslandAppShell(
                     }
                 }
 
+                val isNotchMode = settings.capsuleStyle == CapsuleStyle.IPHONE_13_NOTCH
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .windowInsetsPadding(WindowInsets.statusBars),
+                        .then(if (isNotchMode) Modifier else Modifier.windowInsetsPadding(WindowInsets.statusBars)),
                 ) {
                     // Top Live Interactive Dynamic Island Sandbox & Drag-and-Go Target Zone
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 6.dp, bottom = 10.dp)
+                            .padding(top = if (isNotchMode) 0.dp else 6.dp, bottom = 10.dp)
                             .onSizeChanged { islandContainerWidthPx = it.width.toFloat() }
                             .dragAndDropTarget(
                                 shouldStartDragAndDrop = { true },
